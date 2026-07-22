@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@hedystia/better-auth-typeorm':
+        specifier: ^1.0.1
+        version: 1.0.1(better-auth@1.6.24(pg@8.22.0))(typeorm@0.3.31(pg@8.22.0)(ts-node@10.9.2(@types/node@22.20.1)(typescript@5.9.3)))
       '@nestjs/common':
         specifier: ^11.0.1
         version: 11.1.28(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -505,6 +508,12 @@ packages:
 
   '@hapi/topo@6.0.2':
     resolution: {integrity: sha512-KR3rD5inZbGMrHmgPxsJ9dbi6zEK+C3ZwUwTa+eMwWLz7oijWUTWD2pMSNNYJAU6Qq+65NkxXjqHr/7LM2Xkqg==}
+
+  '@hedystia/better-auth-typeorm@1.0.1':
+    resolution: {integrity: sha512-hp5zCN8dDBKf5/odnoDdor8SLAb73ysjCIz09wTk6IxNmCAABzxYgu1f5ZniLLcEDFX6drXo411PoiivfZIWtg==}
+    peerDependencies:
+      better-auth: ^1.4.19
+      typeorm: ^1.0.0
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -4087,6 +4096,11 @@ snapshots:
   '@hapi/topo@6.0.2':
     dependencies:
       '@hapi/hoek': 11.0.7
+
+  '@hedystia/better-auth-typeorm@1.0.1(better-auth@1.6.24(pg@8.22.0))(typeorm@0.3.31(pg@8.22.0)(ts-node@10.9.2(@types/node@22.20.1)(typescript@5.9.3)))':
+    dependencies:
+      better-auth: 1.6.24(pg@8.22.0)
+      typeorm: 0.3.31(pg@8.22.0)(ts-node@10.9.2(@types/node@22.20.1)(typescript@5.9.3))
 
   '@humanfs/core@0.19.2':
     dependencies:
