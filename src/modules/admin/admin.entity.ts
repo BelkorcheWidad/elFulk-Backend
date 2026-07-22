@@ -49,6 +49,10 @@ export class Admin {
   @Column({ nullable: false, select: false })
   password_hash: string;
 
+  @ApiProperty({ description: 'Better Auth user ID' })
+  @Column({ unique: true, name: 'user_id' })
+  userId: string;
+
   @ApiProperty({ description: 'First name', example: 'Khalil' })
   @Column({ nullable: false })
   first_name: string;

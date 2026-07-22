@@ -1,29 +1,35 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
-import { AuthService } from './auth.service';
+import { AuthService } from '@thallesp/nestjs-better-auth';
 import { ParentService } from '../parent/parent.service';
-import { ActivatePinDto } from '../parent/dto/activate-pin.dto';
 import { LoginDto } from './dto/login.dto';
 
 describe('AuthController', () => {
   let controller: AuthController;
-  let authService: Record<string, jest.Mock>;
+  let betterAuthService: { api: { signInEmail: jest.Mock } };
   let parentService: Record<string, jest.Mock>;
 
+  const mockSession = {
+    user: { id: 'user-uuid', email: 'test@example.com' },
+    session: { token: 'sess-token' },
+  };
+
   beforeEach(async () => {
-    authService = {
-      login: jest.fn(),
-      getProfile: jest.fn(),
+    betterAuthService = {
+      api: {
+        signInEmail: jest.fn(),
+      },
     };
 
     parentService = {
+      findByUserId: jest.fn(),
       activatePin: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
-        { provide: AuthService, useValue: authService },
+        { provide: AuthService, useValue: betterAuthService },
         { provide: ParentService, useValue: parentService },
       ],
     }).compile();
@@ -32,48 +38,78 @@ describe('AuthController', () => {
   });
 
   describe('login', () => {
-    it('should delegate to authService.login with the DTO', async () => {
-      const dto: LoginDto = {
-        email: 'test@example.com',
-        password: 'pass123',
-      };
-      const expected = { access_token: 'token' };
-      authService.login.mockResolvedValue(expected);
+    it('should call signInEmail and return access_token', async () => {
+      const dto: LoginDto = { email: 'test@example.com', password: 'pass123' };
+      betterAuthService.api.signInEmail.mockResolvedValue({
+        token: 'jwt-token',
+        user: { id: 'uid' },
+      });
 
       const result = await controller.login(dto);
 
-      expect(result).toBe(expected);
-      expect(authService.login).toHaveBeenCalledWith(dto);
+      expect(result).toEqual({ access_token: 'jwt-token' });
+      expect(betterAuthService.api.signInEmail).toHaveBeenCalledWith({
+        email: 'test@example.com',
+        password: 'pass123',
+      });
+    });
+
+    it('should throw UnauthorizedException on failed signIn', async () => {
+      const dto: LoginDto = { email: 'test@example.com', password: 'wrong' };
+      betterAuthService.api.signInEmail.mockRejectedValue(
+        new Error('Invalid credentials'),
+      );
+
+      await expect(controller.login(dto)).rejects.toThrow(
+        'Invalid credentials',
+      );
     });
   });
 
   describe('getProfile', () => {
-    it('should delegate to authService.getProfile with the authenticated user id', async () => {
-      const req = { user: { id: 'user-uuid' } };
-      const expected = { id: 'user-uuid', email: 'test@example.com' };
-      authService.getProfile.mockResolvedValue(expected);
+    it('should return parent found by user id', async () => {
+      const expectedParent = { id: 'parent-uuid', email: 'test@example.com' };
+      parentService.findByUserId.mockResolvedValue(expectedParent);
 
-      const result = await controller.getProfile(req);
+      const result = await controller.getProfile(mockSession);
 
-      expect(result).toBe(expected);
-      expect(authService.getProfile).toHaveBeenCalledWith('user-uuid');
+      expect(result).toBe(expectedParent);
+      expect(parentService.findByUserId).toHaveBeenCalledWith('user-uuid');
+    });
+
+    it('should throw when no parent matches user id', async () => {
+      parentService.findByUserId.mockRejectedValue(new Error('not found'));
+
+      await expect(controller.getProfile(mockSession)).rejects.toThrow(
+        'not found',
+      );
     });
   });
 
   describe('activatePin', () => {
-    it('should delegate to parentService.activatePin with user id and pin', async () => {
-      const req = { user: { id: 'user-uuid' } };
-      const dto: ActivatePinDto = { pin: '1234' };
-      const expected = { message: 'Parent mode activated successfully' };
-      parentService.activatePin.mockResolvedValue(expected);
+    it('should activate pin for the authenticated parent', async () => {
+      const parent = { id: 'parent-uuid', email: 'test@example.com' };
+      parentService.findByUserId.mockResolvedValue(parent);
+      parentService.activatePin.mockResolvedValue({
+        message: 'Parent mode activated successfully',
+      });
 
-      const result = await controller.activatePin(req, dto);
+      const result = await controller.activatePin(mockSession, { pin: '1234' });
 
-      expect(result).toBe(expected);
+      expect(result).toEqual({ message: 'Parent mode activated successfully' });
+      expect(parentService.findByUserId).toHaveBeenCalledWith('user-uuid');
       expect(parentService.activatePin).toHaveBeenCalledWith(
-        'user-uuid',
+        'parent-uuid',
         '1234',
       );
+    });
+
+    it('should throw when parent not found', async () => {
+      parentService.findByUserId.mockRejectedValue(new Error('not found'));
+
+      await expect(
+        controller.activatePin(mockSession, { pin: '1234' }),
+      ).rejects.toThrow('not found');
     });
   });
 });

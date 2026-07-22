@@ -97,7 +97,10 @@
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
     "moduleNameMapper": {
-      "^@thallesp/nestjs-better-auth$": "<rootDir>/../test/mocks/better-auth-mock"
+      "^@thallesp/nestjs-better-auth$": "<rootDir>/../test/mocks/better-auth-mock",
+      "^better-auth$": "<rootDir>/../test/mocks/better-auth-mock",
+      "^better-auth/(.*)$": "<rootDir>/../test/mocks/better-auth-mock",
+      "^@hedystia/better-auth-typeorm$": "<rootDir>/../test/mocks/better-auth-mock"
     }
   },
   "lint-staged": {

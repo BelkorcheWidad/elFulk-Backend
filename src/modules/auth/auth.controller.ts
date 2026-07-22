@@ -3,20 +3,19 @@ import {
   Post,
   Body,
   Get,
-  UseGuards,
-  Request,
   HttpCode,
   HttpStatus,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
-import { AuthService } from './auth.service';
+  AllowAnonymous,
+  Session,
+  UserSession,
+  AuthService,
+} from '@thallesp/nestjs-better-auth';
+import { auth } from '../../auth';
 import { LoginDto } from './dto/login.dto';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { ActivatePinDto } from '../parent/dto/activate-pin.dto';
 import { ParentService } from '../parent/parent.service';
 
@@ -24,46 +23,47 @@ import { ParentService } from '../parent/parent.service';
 @Controller('auth')
 export class AuthController {
   constructor(
-    private readonly authService: AuthService,
+    private readonly betterAuthService: AuthService<typeof auth>,
     private readonly parentService: ParentService,
   ) {}
 
   @Post('login')
-  @ApiOperation({ summary: 'Parent login with email and password' })
-  @ApiResponse({ status: 201, description: 'Returns JWT access token' })
+  @AllowAnonymous()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login with email and password' })
+  @ApiResponse({ status: 200, description: 'Returns session token' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  async login(@Body() dto: LoginDto) {
+    try {
+      const { token } = await this.betterAuthService.api.signInEmail({
+        email: dto.email,
+        password: dto.password,
+      });
+      return { access_token: token };
+    } catch {
+      throw new UnauthorizedException('Invalid credentials');
+    }
   }
 
   @Get('me')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get authenticated parent profile' })
-  @ApiResponse({ status: 200, description: 'Authenticated parent profile' })
+  @ApiOperation({ summary: 'Get authenticated user profile' })
+  @ApiResponse({ status: 200, description: 'User profile' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  getProfile(@Request() req: { user: { id: string } }) {
-    return this.authService.getProfile(req.user.id);
+  async getProfile(@Session() session: UserSession<typeof auth>) {
+    return this.parentService.findByUserId(session.user.id);
   }
 
   @Post('activate-pin')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Activate parent mode with a 4-digit PIN' })
-  @ApiResponse({
-    status: 200,
-    description: 'Parent mode activated successfully',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'PIN already activated or invalid format',
-  })
+  @ApiResponse({ status: 200, description: 'Parent mode activated' })
+  @ApiResponse({ status: 400, description: 'Already activated or invalid' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  activatePin(
-    @Request() req: { user: { id: string } },
+  async activatePin(
+    @Session() session: UserSession<typeof auth>,
     @Body() dto: ActivatePinDto,
   ) {
-    return this.parentService.activatePin(req.user.id, dto.pin);
+    const parent = await this.parentService.findByUserId(session.user.id);
+    return this.parentService.activatePin(parent.id, dto.pin);
   }
 }

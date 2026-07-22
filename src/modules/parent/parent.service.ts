@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as crypto from 'crypto';
+import { auth } from '../../auth';
 import { Parent } from './parent.entity';
 import { CreateParentDto } from './dto/create-parent.dto';
 import { UpdateParentDto } from './dto/update-parent.dto';
@@ -26,6 +27,14 @@ export class ParentService {
     return parent;
   }
 
+  async findByUserId(userId: string): Promise<Parent> {
+    const parent = await this.repo.findOne({ where: { userId } });
+    if (!parent) {
+      throw new NotFoundException(`Parent with user id ${userId} not found`);
+    }
+    return parent;
+  }
+
   async findByEmail(email: string): Promise<Parent | null> {
     return await this.repo
       .createQueryBuilder('parent')
@@ -36,7 +45,21 @@ export class ParentService {
   }
 
   async create(dto: CreateParentDto): Promise<Parent> {
-    const parent = this.repo.create(dto);
+    const { user } = await auth.api.signUpEmail({
+      email: dto.email,
+      password: dto.password,
+      name: dto.username,
+      data: {
+        username: dto.username,
+        phone_number: dto.phone_number,
+      },
+    });
+
+    const parent = this.repo.create({
+      ...dto,
+      userId: user.id,
+      password_hash: undefined as never,
+    });
     return await this.repo.save(parent);
   }
 

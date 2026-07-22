@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  MinLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { AuthProvider } from '../parent.entity';
@@ -19,7 +20,15 @@ export class CreateParentDto {
   @IsNotEmpty()
   email: string;
 
-  @ApiPropertyOptional()
+  @ApiProperty({
+    description: 'Plain-text password (will be hashed by Better Auth)',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6)
+  password: string;
+
+  @ApiPropertyOptional({ description: 'Deprecated — use password instead' })
   @IsString()
   @IsOptional()
   password_hash?: string;

@@ -38,6 +38,10 @@ export class Parent {
   @Column({ nullable: true, select: false })
   password_hash: string | null;
 
+  @ApiProperty({ description: 'Better Auth user ID' })
+  @Column({ unique: true, name: 'user_id' })
+  userId: string;
+
   @ApiPropertyOptional()
   @Column({ nullable: true, select: false })
   pin_hash: string | null;

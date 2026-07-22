@@ -30,7 +30,8 @@ import { auth } from './auth';
     }),
     BetterAuthModule.forRoot({
       auth,
-      disableGlobalAuthGuard: true,
+      disableGlobalAuthGuard: false,
+      disableControllers: true,
       bodyParser: {
         json: { limit: '2mb' },
         urlencoded: { limit: '2mb', extended: true },

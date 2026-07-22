@@ -9,6 +9,7 @@ import {
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { hash } from 'bcrypt';
+import { auth } from '../../auth';
 import { Admin, AdminRole, AccountStatus } from './admin.entity';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
@@ -27,6 +28,14 @@ export class AdminService {
     @InjectRepository(Admin)
     private readonly adminRepository: Repository<Admin>,
   ) {}
+
+  async findByUserId(userId: string): Promise<Admin> {
+    const admin = await this.adminRepository.findOne({ where: { userId } });
+    if (!admin) {
+      throw new NotFoundException('Admin not found');
+    }
+    return admin;
+  }
 
   async ensureSuperAdminExists(): Promise<void> {
     const superAdminExists = await this.adminRepository.exists({
@@ -49,13 +58,29 @@ export class AdminService {
       return;
     }
 
-    const passwordHash = await hashPassword(password);
+    let user: { id: string };
+    try {
+      const result = (await auth.api.signUpEmail({
+        email,
+        password,
+        name: `${firstName} ${lastName}`,
+        data: { first_name: firstName, last_name: lastName },
+      })) as { user: { id: string } };
+      user = result.user;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.warn(
+        `SUPER_ADMIN Better Auth user creation failed: ${message}`,
+      );
+      return;
+    }
 
     const superAdmin = this.adminRepository.create({
       email,
       first_name: firstName,
       last_name: lastName,
-      password_hash: passwordHash,
+      userId: user.id,
+      password_hash: undefined as never,
       role: AdminRole.SUPER_ADMIN,
       status: AccountStatus.ACTIVE,
       approved_at: new Date(),
@@ -90,12 +115,22 @@ export class AdminService {
       );
     }
 
-    const hashedPassword = await hashPassword(createAdminDto.password);
+    const { password, ...dto } = createAdminDto;
+
+    const { user } = (await auth.api.signUpEmail({
+      email: dto.email.toLowerCase().trim(),
+      password,
+      name: `${dto.first_name} ${dto.last_name}`,
+      data: {
+        first_name: dto.first_name,
+        last_name: dto.last_name,
+      },
+    })) as { user: { id: string } };
+
     const admin = this.adminRepository.create({
-      first_name: createAdminDto.first_name,
-      last_name: createAdminDto.last_name,
-      email: createAdminDto.email.toLowerCase().trim(),
-      password_hash: hashedPassword,
+      ...dto,
+      userId: user.id,
+      password_hash: undefined as never,
       role: AdminRole.MODERATOR,
       status: AccountStatus.PENDING,
     });

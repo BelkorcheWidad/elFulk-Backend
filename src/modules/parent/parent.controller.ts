@@ -8,29 +8,27 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
-  UseGuards,
-  Request,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiParam,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+  AllowAnonymous,
+  Session,
+  UserSession,
+} from '@thallesp/nestjs-better-auth';
+import { auth } from '../../auth';
 import { ParentService } from './parent.service';
 import { CreateParentDto } from './dto/create-parent.dto';
 import { UpdateParentDto } from './dto/update-parent.dto';
-import { ActivatePinDto } from './dto/activate-pin.dto';
 import { VerifyPinDto } from './dto/verify-pin.dto';
 import { Parent } from './parent.entity';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('parents')
 @Controller('parents')
 export class ParentController {
   constructor(private readonly parentService: ParentService) {}
+
   @Post()
+  @AllowAnonymous()
   @ApiOperation({ summary: 'Create a parent account' })
   @ApiResponse({ status: 201, description: 'Parent created', type: Parent })
   @ApiResponse({ status: 400, description: 'Validation error' })
@@ -39,12 +37,11 @@ export class ParentController {
   }
 
   @Get('me')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current authenticated parent' })
   @ApiResponse({ status: 200, description: 'Parent profile', type: Parent })
-  getMe(@Request() req: { user: { id: string } }): Promise<Parent> {
-    return this.parentService.findById(req.user.id);
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getMe(@Session() session: UserSession<typeof auth>): Promise<Parent> {
+    return this.parentService.findByUserId(session.user.id);
   }
 
   @Get(':id')
@@ -57,40 +54,29 @@ export class ParentController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update parent (partial)' })
   @ApiParam({ name: 'id', description: 'Parent UUID' })
   @ApiResponse({ status: 200, description: 'Parent updated', type: Parent })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Parent not found' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateParentDto,
   ): Promise<Parent> {
     return this.parentService.update(id, dto);
   }
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Activate parent mode with a PIN' })
-  @ApiResponse({ status: 200, description: 'Parent mode activated' })
-  @ApiResponse({ status: 400, description: 'Already activated or invalid PIN' })
-  activatePin(
-    @Request() req: { user: { id: string } },
-    @Body() dto: ActivatePinDto,
-  ): Promise<{ message: string }> {
-    return this.parentService.activatePin(req.user.id, dto.pin);
-  }
+
   @Post('verify-pin')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify parent PIN' })
   @ApiResponse({ status: 200, description: 'PIN is valid' })
   @ApiResponse({ status: 401, description: 'Invalid PIN' })
   async verifyPin(
-    @Request() req: { user: { id: string } },
+    @Session() session: UserSession<typeof auth>,
     @Body() dto: VerifyPinDto,
   ): Promise<{ valid: boolean }> {
-    await this.parentService.verifyPin(req.user.id, dto.pin);
+    const parent = await this.parentService.findByUserId(session.user.id);
+    await this.parentService.verifyPin(parent.id, dto.pin);
     return { valid: true };
   }
 }
