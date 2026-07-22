@@ -95,7 +95,10 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@thallesp/nestjs-better-auth$": "<rootDir>/../test/mocks/better-auth-mock"
+    }
   },
   "lint-staged": {
     "*.{ts,js,json,md}": [
