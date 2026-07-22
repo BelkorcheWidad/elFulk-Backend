@@ -55,7 +55,7 @@ export class ParentController {
   findOne(@Param('id', ParseUUIDPipe) id: string): Promise<Parent> {
     return this.parentService.findById(id);
   }
-  
+
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -90,8 +90,7 @@ export class ParentController {
     @Request() req: { user: { id: string } },
     @Body() dto: VerifyPinDto,
   ): Promise<{ valid: boolean }> {
-    await this.parentService
-          .verifyPin(req.user.id, dto.pin);
-      return ({ valid: true });
+    await this.parentService.verifyPin(req.user.id, dto.pin);
+    return { valid: true };
   }
 }

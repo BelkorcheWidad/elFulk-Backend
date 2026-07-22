@@ -23,7 +23,6 @@ import { ChildService } from './child.service';
 import { ParentService } from '../parent/parent.service';
 import { CreateChildDto } from './dto/create-child.dto';
 import { UpdateChildDto } from './dto/update-child.dto';
-import { VerifyPinDto } from '../parent/dto/verify-pin.dto';
 import { Child } from './child.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -41,8 +40,15 @@ export class ChildController {
   @ApiOperation({
     summary: 'Create a child profile (requires active parent mode PIN)',
   })
-  @ApiResponse({ status: 201, description: 'Child created successfully', type: Child })
-  @ApiResponse({ status: 400, description: 'Validation error or parent mode not activated' })
+  @ApiResponse({
+    status: 201,
+    description: 'Child created successfully',
+    type: Child,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error or parent mode not activated',
+  })
   @ApiResponse({ status: 401, description: 'Invalid PIN or not authenticated' })
   async create(
     @Request() req: { user: { id: string } },
@@ -56,7 +62,11 @@ export class ChildController {
 
   @Get()
   @ApiOperation({ summary: 'List all child profiles' })
-  @ApiResponse({ status: 200, description: 'List of all children', type: [Child] })
+  @ApiResponse({
+    status: 200,
+    description: 'List of all children',
+    type: [Child],
+  })
   findAll(): Promise<Child[]> {
     return this.childService.findAll();
   }
@@ -64,7 +74,9 @@ export class ChildController {
   @Get('my')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List children belonging to the authenticated parent' })
+  @ApiOperation({
+    summary: 'List children belonging to the authenticated parent',
+  })
   @ApiResponse({ status: 200, description: 'List of children', type: [Child] })
   findMine(@Request() req: { user: { id: string } }): Promise<Child[]> {
     return this.childService.findByParent(req.user.id);
@@ -84,7 +96,11 @@ export class ChildController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a child profile (partial)' })
   @ApiParam({ name: 'id', description: 'Child UUIDv7' })
-  @ApiResponse({ status: 200, description: 'Child updated successfully', type: Child })
+  @ApiResponse({
+    status: 200,
+    description: 'Child updated successfully',
+    type: Child,
+  })
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 404, description: 'Child not found' })
   update(
