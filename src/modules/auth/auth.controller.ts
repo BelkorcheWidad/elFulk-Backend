@@ -11,9 +11,9 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
   AllowAnonymous,
   Session,
-  UserSession,
   AuthService,
 } from '@thallesp/nestjs-better-auth';
+import type { UserSession } from '@thallesp/nestjs-better-auth';
 import { auth } from '../../auth';
 import { LoginDto } from './dto/login.dto';
 import { ActivatePinDto } from '../parent/dto/activate-pin.dto';
@@ -36,8 +36,10 @@ export class AuthController {
   async login(@Body() dto: LoginDto) {
     try {
       const { token } = await this.betterAuthService.api.signInEmail({
-        email: dto.email,
-        password: dto.password,
+        body: {
+          email: dto.email,
+          password: dto.password,
+        },
       });
       return { access_token: token };
     } catch {
