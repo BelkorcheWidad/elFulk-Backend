@@ -9,6 +9,7 @@ import {
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { auth } from '../../auth';
+import { generateUsername } from '../../utils/username';
 import { Admin, AdminRole, AccountStatus } from './admin.entity';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
@@ -58,10 +59,14 @@ export class AdminService {
     let user: { id: string };
     try {
       const result = (await auth.api.signUpEmail({
-        email,
-        password,
-        name: `${firstName} ${lastName}`,
-        data: { first_name: firstName, last_name: lastName },
+        body: {
+          email,
+          password,
+          name: `${firstName} ${lastName}`,
+          first_name: firstName,
+          last_name: lastName,
+          username: generateUsername(email),
+        },
       })) as { user: { id: string } };
       user = result.user;
     } catch (err: unknown) {
@@ -111,12 +116,13 @@ export class AdminService {
     const { password, ...dto } = createAdminDto;
 
     const { user } = (await auth.api.signUpEmail({
-      email: dto.email.toLowerCase().trim(),
-      password,
-      name: `${dto.first_name} ${dto.last_name}`,
-      data: {
+      body: {
+        email: dto.email.toLowerCase().trim(),
+        password,
+        name: `${dto.first_name} ${dto.last_name}`,
         first_name: dto.first_name,
         last_name: dto.last_name,
+        username: generateUsername(dto.email.toLowerCase().trim()),
       },
     })) as { user: { id: string } };
 
@@ -173,10 +179,6 @@ export class AdminService {
         first_name: updateAdminDto.first_name ?? admin.user.first_name,
         last_name: updateAdminDto.last_name ?? admin.user.last_name,
       };
-    }
-
-    if (updateAdminDto.password) {
-      // Better Auth handles password changes via its own flow
     }
 
     return this.adminRepository.save(admin);
