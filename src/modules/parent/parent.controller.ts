@@ -13,7 +13,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import {
   AllowAnonymous,
   Session,
-  UserSession,
+  type UserSession,
 } from '@thallesp/nestjs-better-auth';
 import { auth } from '../../auth';
 import { ParentService } from './parent.service';

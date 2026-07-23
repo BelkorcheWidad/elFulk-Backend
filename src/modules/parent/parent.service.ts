@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as crypto from 'crypto';
 import { auth } from '../../auth';
+import { generateUsername } from '../../utils/username';
 import { Parent } from './parent.entity';
 import { CreateParentDto } from './dto/create-parent.dto';
 import { UpdateParentDto } from './dto/update-parent.dto';
@@ -43,11 +44,13 @@ export class ParentService {
 
   async create(dto: CreateParentDto): Promise<Parent> {
     const { user } = await auth.api.signUpEmail({
-      email: dto.email,
-      password: dto.password,
-      name: dto.username,
-      data: {
-        username: dto.username,
+      body: {
+        email: dto.email,
+        password: dto.password,
+        name: dto.username,
+        first_name: dto.username,
+        last_name: dto.username,
+        username: generateUsername(dto.email),
         phone_number: dto.phone_number,
       },
     });
