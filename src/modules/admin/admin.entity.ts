@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { uuidv7 } from 'uuidv7';
+import { User } from '../../../typeorm/entities/User';
 
 export enum AdminRole {
   SUPER_ADMIN = 'super_admin',
@@ -33,33 +34,13 @@ export class Admin {
   @PrimaryColumn('uuid')
   id: string;
 
-  @ApiProperty({
-    description: 'Unique email address',
-    example: 'khalil@test.com',
-    format: 'email',
-  })
-  @Column({ unique: true, nullable: false })
-  email: string;
-
-  @ApiProperty({
-    description: 'Hashed password — write-only, never returned in responses',
-    example: 'StrongP@ssw0rd!',
-    writeOnly: true,
-  })
-  @Column({ nullable: false, select: false })
-  password_hash: string;
-
   @ApiProperty({ description: 'Better Auth user ID' })
   @Column({ unique: true, name: 'user_id' })
   userId: string;
 
-  @ApiProperty({ description: 'First name', example: 'Khalil' })
-  @Column({ nullable: false })
-  first_name: string;
-
-  @ApiProperty({ description: 'Last name', example: 'Test' })
-  @Column({ nullable: false })
-  last_name: string;
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'user_id' })
+  user: User;
 
   @ApiProperty({
     description: 'Role assigned to the admin',

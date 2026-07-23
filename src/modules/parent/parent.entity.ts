@@ -5,15 +5,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   BeforeInsert,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { uuidv7 } from 'uuidv7';
-
-export enum AuthProvider {
-  EMAIL = 'EMAIL',
-  GOOGLE = 'GOOGLE',
-  APPLE = 'APPLE',
-}
+import { User } from '../../../typeorm/entities/User';
 
 @Entity()
 export class Parent {
@@ -26,21 +23,13 @@ export class Parent {
     this.id ??= uuidv7();
   }
 
-  @ApiProperty()
-  @Column()
-  username: string;
-
-  @ApiProperty({ format: 'email' })
-  @Column({ unique: true })
-  email: string;
-
-  @ApiPropertyOptional()
-  @Column({ nullable: true, select: false })
-  password_hash: string | null;
-
   @ApiProperty({ description: 'Better Auth user ID' })
   @Column({ unique: true, name: 'user_id' })
   userId: string;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'user_id' })
+  user: User;
 
   @ApiPropertyOptional()
   @Column({ nullable: true, select: false })
@@ -53,18 +42,6 @@ export class Parent {
   @ApiPropertyOptional()
   @Column({ nullable: true })
   phone_number: string | null;
-
-  @ApiProperty({ enum: AuthProvider })
-  @Column({
-    type: 'enum',
-    enum: AuthProvider,
-    default: AuthProvider.EMAIL,
-  })
-  auth_provider: AuthProvider;
-
-  @ApiPropertyOptional()
-  @Column({ nullable: true })
-  external_subject_id: string | null;
 
   @ApiProperty({ default: false })
   @Column({ default: false })
