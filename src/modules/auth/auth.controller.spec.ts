@@ -10,8 +10,32 @@ describe('AuthController', () => {
   let parentService: Record<string, jest.Mock>;
 
   const mockSession = {
-    user: { id: 'user-uuid', email: 'test@example.com' },
-    session: { token: 'sess-token' },
+    session: {
+      id: 'sess-id',
+      token: 'sess-token',
+      userId: 'user-uuid',
+      expiresAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      ipAddress: null,
+      userAgent: null,
+    },
+    user: {
+      id: 'user-uuid',
+      name: 'Test User',
+      email: 'test@example.com',
+      emailVerified: true,
+      image: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      username: 'testuser',
+      first_name: 'Test',
+      last_name: 'User',
+      phone_number: null,
+      lock_alerts: false,
+      limit_warning: false,
+      is_active: true,
+    },
   };
 
   beforeEach(async () => {
@@ -49,8 +73,10 @@ describe('AuthController', () => {
 
       expect(result).toEqual({ access_token: 'jwt-token' });
       expect(betterAuthService.api.signInEmail).toHaveBeenCalledWith({
-        email: 'test@example.com',
-        password: 'pass123',
+        body: {
+          email: 'test@example.com',
+          password: 'pass123',
+        },
       });
     });
 
