@@ -20,7 +20,10 @@ export class ParentService {
   ) {}
 
   async findById(id: string): Promise<Parent> {
-    const parent = await this.repo.findOne({ where: { id } });
+    const parent = await this.repo.findOne({
+      where: { id },
+      relations: ['user'],
+    });
     if (!parent) {
       throw new NotFoundException(`Parent with id ${id} not found`);
     }
@@ -28,20 +31,14 @@ export class ParentService {
   }
 
   async findByUserId(userId: string): Promise<Parent> {
-    const parent = await this.repo.findOne({ where: { userId } });
+    const parent = await this.repo.findOne({
+      where: { userId },
+      relations: ['user'],
+    });
     if (!parent) {
       throw new NotFoundException(`Parent with user id ${userId} not found`);
     }
     return parent;
-  }
-
-  async findByEmail(email: string): Promise<Parent | null> {
-    return await this.repo
-      .createQueryBuilder('parent')
-      .addSelect('parent.password_hash')
-      .addSelect('parent.pin_hash')
-      .where('parent.email = :email', { email })
-      .getOne();
   }
 
   async create(dto: CreateParentDto): Promise<Parent> {
@@ -56,9 +53,9 @@ export class ParentService {
     });
 
     const parent = this.repo.create({
-      ...dto,
       userId: user.id,
-      password_hash: undefined as never,
+      pin_hash: dto.pin_hash,
+      phone_number: dto.phone_number,
     });
     return await this.repo.save(parent);
   }
