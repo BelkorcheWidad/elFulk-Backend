@@ -8,17 +8,11 @@ import {
 } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { hash } from 'bcrypt';
 import { auth } from '../../auth';
 import { Admin, AdminRole, AccountStatus } from './admin.entity';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import { UpdateAdminRoleStatusDto } from './dto/update-admin-role-status.dto';
-
-const SALT_ROUNDS = 10;
-
-const hashPassword = (password: string): Promise<string> =>
-  hash(password, SALT_ROUNDS);
 
 @Injectable()
 export class AdminService {
@@ -30,7 +24,10 @@ export class AdminService {
   ) {}
 
   async findByUserId(userId: string): Promise<Admin> {
-    const admin = await this.adminRepository.findOne({ where: { userId } });
+    const admin = await this.adminRepository.findOne({
+      where: { userId },
+      relations: ['user'],
+    });
     if (!admin) {
       throw new NotFoundException('Admin not found');
     }
@@ -76,11 +73,7 @@ export class AdminService {
     }
 
     const superAdmin = this.adminRepository.create({
-      email,
-      first_name: firstName,
-      last_name: lastName,
       userId: user.id,
-      password_hash: undefined as never,
       role: AdminRole.SUPER_ADMIN,
       status: AccountStatus.ACTIVE,
       approved_at: new Date(),
@@ -128,9 +121,7 @@ export class AdminService {
     })) as { user: { id: string } };
 
     const admin = this.adminRepository.create({
-      ...dto,
       userId: user.id,
-      password_hash: undefined as never,
       role: AdminRole.MODERATOR,
       status: AccountStatus.PENDING,
     });
@@ -152,12 +143,16 @@ export class AdminService {
 
   async findAll(): Promise<Admin[]> {
     return this.adminRepository.find({
+      relations: ['user'],
       order: { created_at: 'DESC' },
     });
   }
 
   async findOne(id: string): Promise<Admin> {
-    const admin = await this.adminRepository.findOne({ where: { id } });
+    const admin = await this.adminRepository.findOne({
+      where: { id },
+      relations: ['user'],
+    });
 
     if (!admin) {
       throw new NotFoundException('Admin not found');
@@ -170,20 +165,18 @@ export class AdminService {
     id: string,
     updateAdminDto: UpdateAdminDto,
   ): Promise<Admin> {
-    const updatePayload: Partial<Admin> = {
-      first_name: updateAdminDto.first_name,
-      last_name: updateAdminDto.last_name,
-      email: updateAdminDto.email,
-    };
+    const admin = await this.findOne(id);
 
-    if (updateAdminDto.password) {
-      updatePayload.password_hash = await hashPassword(updateAdminDto.password);
+    if (updateAdminDto.first_name || updateAdminDto.last_name) {
+      admin.user = {
+        ...admin.user,
+        first_name: updateAdminDto.first_name ?? admin.user.first_name,
+        last_name: updateAdminDto.last_name ?? admin.user.last_name,
+      };
     }
 
-    const admin = await this.adminRepository.preload({ id, ...updatePayload });
-
-    if (!admin) {
-      throw new NotFoundException('Admin not found');
+    if (updateAdminDto.password) {
+      // Better Auth handles password changes via its own flow
     }
 
     return this.adminRepository.save(admin);
