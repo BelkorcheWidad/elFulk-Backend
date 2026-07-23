@@ -11,7 +11,7 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
-import { Session, UserSession } from '@thallesp/nestjs-better-auth';
+import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
 import { auth } from '../../auth';
 import { ChildService } from './child.service';
 import { ParentService } from '../parent/parent.service';
