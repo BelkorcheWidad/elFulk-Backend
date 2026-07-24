@@ -29,9 +29,6 @@ export class User {
   })
   updatedAt!: Date;
 
-  @Column('text', { name: 'username' })
-  username!: string;
-
   @Column('text', { name: 'first_name' })
   first_name!: string;
 

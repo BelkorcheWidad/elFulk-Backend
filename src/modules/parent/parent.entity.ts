@@ -23,6 +23,10 @@ export class Parent {
     this.id ??= uuidv7();
   }
 
+  @ApiProperty({ description: 'Parent display name' })
+  @Column()
+  username: string;
+
   @ApiProperty({ description: 'Better Auth user ID' })
   @Column({ unique: true, name: 'user_id' })
   userId: string;

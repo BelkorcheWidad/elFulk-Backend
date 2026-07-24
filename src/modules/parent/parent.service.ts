@@ -57,6 +57,7 @@ export class ParentService {
 
     const parent = this.repo.create({
       userId,
+      username: dto.username,
       pin_hash: dto.pin_hash,
       phone_number: dto.phone_number,
     });

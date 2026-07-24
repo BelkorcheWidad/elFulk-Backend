@@ -9,7 +9,6 @@ import {
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { auth } from '../../auth';
-import { generateUsername } from '../../utils/username';
 import { Admin, AdminRole, AccountStatus } from './admin.entity';
 import { Parent } from '../parent/parent.entity';
 import { CreateAdminDto } from './dto/create-admin.dto';
@@ -68,7 +67,6 @@ export class AdminService {
           name: `${firstName} ${lastName}`,
           first_name: firstName,
           last_name: lastName,
-          username: generateUsername(email),
         },
       })) as { user: { id: string } };
       user = result.user;
@@ -135,7 +133,6 @@ export class AdminService {
         name: `${dto.first_name} ${dto.last_name}`,
         first_name: dto.first_name,
         last_name: dto.last_name,
-        username: generateUsername(dto.email.toLowerCase().trim()),
       },
     })) as { user: { id: string } };
 

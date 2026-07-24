@@ -1,7 +1,12 @@
-import { IsOptional, IsString } from 'class-validator';
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateParentDto {
+  @ApiProperty({ example: 'fatima_ouali' })
+  @IsString()
+  @IsNotEmpty()
+  username: string;
+
   @ApiPropertyOptional()
   @IsString()
   @IsOptional()

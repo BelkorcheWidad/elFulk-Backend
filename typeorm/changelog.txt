@@ -1,0 +1,12 @@
+# TypeORM Schema Changes - 2026-07-24T14:55:58.971Z
+
+- ALTER Migration: migrations/1784904958970-alter-user.ts
+- Updated Entity: entities/User.ts
+  - Removed columns: username
+
+- Updated entity: entities/Session.ts
+
+- Updated entity: entities/Account.ts
+
+- Updated entity: entities/Verification.ts
+
