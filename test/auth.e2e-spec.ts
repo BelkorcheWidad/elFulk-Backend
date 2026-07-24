@@ -20,7 +20,6 @@ function mockSessionMiddleware(
       image: null,
       createdAt: new Date(),
       updatedAt: new Date(),
-      username: 'testuser',
       first_name: 'Test',
       last_name: 'User',
       phone_number: null,

@@ -15,7 +15,13 @@ export class AuthService {
   }
 }
 export type UserSession = {
-  user: { id: string; email: string; [key: string]: unknown };
+  user: {
+    id: string;
+    email: string;
+    first_name?: string;
+    last_name?: string;
+    [key: string]: unknown;
+  };
   session: { token: string; [key: string]: unknown };
 };
 
