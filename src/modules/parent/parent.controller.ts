@@ -10,11 +10,7 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
-import {
-  AllowAnonymous,
-  Session,
-  type UserSession,
-} from '@thallesp/nestjs-better-auth';
+import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
 import { auth } from '../../auth';
 import { ParentService } from './parent.service';
 import { CreateParentDto } from './dto/create-parent.dto';
@@ -28,12 +24,14 @@ export class ParentController {
   constructor(private readonly parentService: ParentService) {}
 
   @Post()
-  @AllowAnonymous()
-  @ApiOperation({ summary: 'Create a parent account' })
+  @ApiOperation({ summary: 'Link a Parent record to the authenticated user' })
   @ApiResponse({ status: 201, description: 'Parent created', type: Parent })
   @ApiResponse({ status: 400, description: 'Validation error' })
-  create(@Body() dto: CreateParentDto): Promise<Parent> {
-    return this.parentService.create(dto);
+  async create(
+    @Session() session: UserSession<typeof auth>,
+    @Body() dto: CreateParentDto,
+  ): Promise<Parent> {
+    return this.parentService.create(session.user.id, dto);
   }
 
   @Get('me')

@@ -36,8 +36,7 @@ sequenceDiagram
     Client->>AuthController: GET /auth/me (Bearer / cookie)
     AuthController->>betterAuth: validate session
     betterAuth-->>AuthController: session.user
-    AuthController->>ParentService: findByUserId(user.id)
-    AuthController-->>Client: profile
+    AuthController-->>Client: { id, email, name, first_name, last_name, ... }
 ```
 
 Response: `200 { "access_token": "<session-token>" }`. The token is a Better Auth
@@ -50,60 +49,77 @@ session token, not a raw JWT (JWT cookie cache is only for cookie serialization)
 
 ### Registration
 
-#### Parent (public)
+All registration flows follow a **two-step** pattern: register the user in Better
+Auth first, then create the role-specific record.
+
+#### Parent
 
 ```mermaid
 sequenceDiagram
     participant Client
-    participant ParentController
-    participant ParentService
     participant betterAuth
+    participant API as NestJS API
     participant DB
 
-    Client->>ParentController: POST /parents (email, password, ...)
-    ParentController->>ParentService: create(dto)
-    ParentService->>betterAuth: api.signUpEmail(email, password, data)
-    betterAuth->>DB: insert user
+    Client->>betterAuth: POST /api/auth/sign-up/email<br/>{ email, password, name, first_name, last_name }
+    betterAuth->>DB: insert user + account
     DB-->>betterAuth: user
-    betterAuth-->>ParentService: { user }
-    ParentService->>DB: insert parent (userId)
-    DB-->>ParentService: parent
-    ParentService-->>ParentController: parent
-    ParentController-->>Client: 201 Parent
+    betterAuth-->>Client: { token, user }
+
+    Client->>API: POST /api/v1/parents<br/>Authorization: Bearer token<br/>{ phone_number? }
+    API->>API: session.user.id
+    API->>DB: insert parent { userId, ... }
+    DB-->>API: parent
+    API-->>Client: 201 Parent
 ```
 
-1. `ParentService.create()` calls `auth.api.signUpEmail()` — creates a Better Auth `User` and `Session`.
-2. A `Parent` record is created with `userId` set to the new `User.id`.
+1. **Step 1** — Client calls Better Auth's built-in `/api/auth/sign-up/email`
+   endpoint directly. This creates the `user` and `account` records.
+   Required fields: `email`, `password`, `name`, `first_name`, `last_name`.
+   The `username` field is auto-generated from the email.
 
-The password is hashed and managed entirely by Better Auth. The `Parent` table
-no longer stores a meaningful `password_hash`.
+2. **Step 2** — Client calls `POST /api/v1/parents` with the bearer token from
+   Step 1. This creates a `Parent` record linked to the authenticated user.
+   Only role-specific fields (`phone_number`, `pin_hash`) are accepted.
 
-> **Username** — The Better Auth `username` field is auto-generated from the
-> email's local part + a 6-char random hex suffix (e.g., `khalil_a1b2c3`).
-> The `CreateParentDto.username` field is used for display purposes only
-> (mapped to the `name` parameter in `signUpEmail`), not for the Better Auth
-> `username` field.
->
-> **Admin** — `CreateAdminDto` has no `username` field. It's generated
-> automatically from the email at creation time via the same mechanism.
+The `CreateParentDto` no longer includes `email`, `password`, or `username` —
+those are handled entirely by Better Auth in Step 1.
 
-#### Admin (protected)
+#### Admin (super admin only)
 
+```mermaid
+sequenceDiagram
+    participant SuperAdmin
+    participant betterAuth
+    participant API as NestJS API
+    participant DB
+
+    SuperAdmin->>betterAuth: POST /api/auth/sign-up/email<br/>{ email, password, name, ... }
+    betterAuth->>DB: insert user + account
+    DB-->>betterAuth: user
+    betterAuth-->>SuperAdmin: { token, user }
+
+    SuperAdmin->>API: POST /api/v1/admins<br/>Authorization: Bearer token (super admin)<br/>{ email, password, first_name, last_name }
+    API->>API: verify requester is SUPER_ADMIN
+    API->>betterAuth: api.signUpEmail({ email, password, ... })
+    betterAuth->>DB: insert user + account
+    DB-->>betterAuth: user
+    betterAuth-->>API: { user }
+    API->>DB: insert admin { userId, role: MODERATOR, status: PENDING }
+    DB-->>API: admin
+    API-->>SuperAdmin: 201 Admin
 ```
-POST /api/v1/admins   ←  requires global guard (any authenticated session)
-{ "email": "...", "password": "...", "first_name": "...", "last_name": "..." }
 
-→ 201 Admin
-```
-
-Same flow as parent, but only an already-authenticated user can create an admin.
+Admin creation is **single-call** from the super admin's perspective: the
+`POST /api/v1/admins` endpoint handles both the Better Auth sign-up and the
+Admin record creation. The caller must be an authenticated super admin. New
+admins are created with role `MODERATOR` and status `PENDING`.
 
 ### Request Protection
 
 The global guard from `@thallesp/nestjs-better-auth` rejects every unauthenticated
-request unless the route carries `@AllowAnonymous()`. Currently only two endpoints
-are public: `POST /auth/login` and `POST /parents`. All other routes require a
-valid session.
+request unless the route carries `@AllowAnonymous()`. Currently only
+`POST /auth/login` is public. All other routes require a valid session.
 
 ### Session Lookup
 
@@ -112,12 +128,16 @@ Every protected endpoint can access the session via the `@Session()` decorator:
 ```ts
 @Get('me')
 getProfile(@Session() session: UserSession<typeof auth>) {
-  return this.parentService.findByUserId(session.user.id);
+  return session.user;
 }
 ```
 
-Application entities (`Parent`, `Admin`) are never looked up by email any more.
-The `userId` column (unique FK → `user.id`) is always used.
+The `/auth/me` endpoint returns the Better Auth user object directly — it works
+for any authenticated user (parent, admin, etc.). Role-specific profiles are
+available at their respective controllers (`/parents/me`, `/admins/:id`).
+
+Application entities (`Parent`, `Admin`) are looked up by `userId`
+(unique FK → `user.id`), never by email.
 
 ---
 

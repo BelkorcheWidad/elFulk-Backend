@@ -103,7 +103,17 @@ export class AdminService {
     }
   }
 
-  async create(createAdminDto: CreateAdminDto): Promise<Admin> {
+  async create(
+    requesterId: string,
+    createAdminDto: CreateAdminDto,
+  ): Promise<Admin> {
+    const requester = await this.adminRepository.findOne({
+      where: { userId: requesterId },
+    });
+    if (!requester || requester.role !== AdminRole.SUPER_ADMIN) {
+      throw new ForbiddenException('Only super admins can create admins');
+    }
+
     if (
       !createAdminDto.password ||
       typeof createAdminDto.password !== 'string'

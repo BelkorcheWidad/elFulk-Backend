@@ -93,28 +93,16 @@ describe('AuthController', () => {
   });
 
   describe('getProfile', () => {
-    it('should return parent found by user id', async () => {
-      const expectedParent = { id: 'parent-uuid', email: 'test@example.com' };
-      parentService.findByUserId.mockResolvedValue(expectedParent);
+    it('should return the session user', () => {
+      const result = controller.getProfile(mockSession);
 
-      const result = await controller.getProfile(mockSession);
-
-      expect(result).toBe(expectedParent);
-      expect(parentService.findByUserId).toHaveBeenCalledWith('user-uuid');
-    });
-
-    it('should throw when no parent matches user id', async () => {
-      parentService.findByUserId.mockRejectedValue(new Error('not found'));
-
-      await expect(controller.getProfile(mockSession)).rejects.toThrow(
-        'not found',
-      );
+      expect(result).toBe(mockSession.user);
     });
   });
 
   describe('activatePin', () => {
     it('should activate pin for the authenticated parent', async () => {
-      const parent = { id: 'parent-uuid', email: 'test@example.com' };
+      const parent = { id: 'parent-uuid', userId: 'user-uuid' };
       parentService.findByUserId.mockResolvedValue(parent);
       parentService.activatePin.mockResolvedValue({
         message: 'Parent mode activated successfully',
