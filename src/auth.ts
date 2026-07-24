@@ -7,6 +7,9 @@ export const auth = betterAuth({
   database: typeormAdapter(dataSource),
   secret: process.env.BETTER_AUTH_SECRET!,
   url: process.env.BETTER_AUTH_URL!,
+  emailAndPassword: {
+    enabled: true,
+  },
   session: {
     cookieCache: { strategy: 'jwt' },
   },
