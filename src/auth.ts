@@ -3,6 +3,26 @@ import { typeormAdapter } from '@hedystia/better-auth-typeorm';
 import { bearer } from 'better-auth/plugins/bearer';
 import { dataSource } from './typeorm/data-source';
 
+const googleProvider =
+  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+    ? {
+        google: {
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        },
+      }
+    : {};
+
+const appleProvider =
+  process.env.APPLE_CLIENT_ID && process.env.APPLE_CLIENT_SECRET
+    ? {
+        apple: {
+          clientId: process.env.APPLE_CLIENT_ID,
+          clientSecret: process.env.APPLE_CLIENT_SECRET,
+        },
+      }
+    : {};
+
 export const auth = betterAuth({
   database: typeormAdapter(dataSource),
   secret: process.env.BETTER_AUTH_SECRET!,
@@ -47,5 +67,12 @@ export const auth = betterAuth({
       },
     },
   },
+  socialProviders: {
+    ...googleProvider,
+    ...appleProvider,
+  },
+  ...(process.env.APPLE_CLIENT_ID
+    ? { trustedOrigins: ['https://appleid.apple.com'] }
+    : {}),
   plugins: [bearer()],
 });
