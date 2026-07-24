@@ -27,3 +27,79 @@ If the Better Auth TypeORM adapter's field workflow proves too tedious
 auth layer to Prisma or Drizzle, which handle custom fields more cleanly.
 This would only affect the `typeorm/entities/` directory — application
 entities would stay on TypeORM unless also migrated.
+
+## Docker: Switch to pnpm & Upgrade Base Image
+
+The Dockerfile currently uses `npm install --legacy-peer-deps` to work
+around peer-dep conflicts from Better Auth's browser transitive deps
+(e.g. `@babel/core@8.x` from `@tanstack/react-start`). Once the base
+image is upgraded to `node:22-alpine`:
+
+1. Switch to `pnpm install --frozen-lockfile` (matches local dev)
+2. Drop `--legacy-peer-deps` — pnpm does not auto-install peer deps
+3. Pin a specific pnpm version in the Dockerfile for reproducibility
+
+## CI/CD Pipeline
+
+No CI configuration exists yet. When adding one (GitHub Actions, GitLab
+CI, etc.):
+
+1. **Lint** — `pnpm lint` (ESLint + Prettier)
+2. **Type check** — `pnpm tsc --noEmit`
+3. **Unit tests** — `pnpm test`
+4. **E2E tests** — requires a PostgreSQL service container;
+   run with `pnpm test:e2e`
+
+Example GitHub Actions workflow skeleton:
+
+```yaml
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm tsc --noEmit
+      - run: pnpm test
+      - run: pnpm test:e2e
+```
+
+## CodeRabbit Integration
+
+[CodeRabbit](https://coderabbit.ai) provides automated code review on
+pull requests. To enable:
+
+1. Install the CodeRabbit GitHub App on the repository
+2. (Optional) Create `.coderabbit.yaml` at the project root for config:
+
+```yaml
+# .coderabbit.yaml
+language: en-US
+reviews:
+  profile: chill
+  review_status: summary
+  path_filters:
+    - '!pnpm-lock.yaml'
+    - '!typeorm/entities/**'
+    - '!typeorm/migrations/**'
+chat:
+  auto_reply: true
+```
+
+The `profile: chill` setting reduces noise; `path_filters` skips
+auto-generated files (lockfile, auth entities/migrations).
