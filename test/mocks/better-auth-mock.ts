@@ -5,7 +5,7 @@ export const AllowAnonymous = () => () => {};
 export const Session = createParamDecorator(
   (_data: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest<Request>();
-    return (request as Record<string, unknown>).session;
+    return (request as unknown as Record<string, unknown>).session;
   },
 );
 export const AuthGuard = class {};

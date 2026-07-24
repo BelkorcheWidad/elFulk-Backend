@@ -11,6 +11,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { auth } from '../../auth';
 import { generateUsername } from '../../utils/username';
 import { Admin, AdminRole, AccountStatus } from './admin.entity';
+import { Parent } from '../parent/parent.entity';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import { UpdateAdminRoleStatusDto } from './dto/update-admin-role-status.dto';
@@ -22,6 +23,8 @@ export class AdminService {
   constructor(
     @InjectRepository(Admin)
     private readonly adminRepository: Repository<Admin>,
+    @InjectRepository(Parent)
+    private readonly parentRepo: Repository<Parent>,
   ) {}
 
   async findByUserId(userId: string): Promise<Admin> {
@@ -135,6 +138,13 @@ export class AdminService {
         username: generateUsername(dto.email.toLowerCase().trim()),
       },
     })) as { user: { id: string } };
+
+    const existingParent = await this.parentRepo.findOne({
+      where: { userId: user.id },
+    });
+    if (existingParent) {
+      throw new ConflictException('User cannot be registered as an admin');
+    }
 
     const admin = this.adminRepository.create({
       userId: user.id,

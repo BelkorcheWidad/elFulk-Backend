@@ -3,11 +3,13 @@ import {
   NotFoundException,
   BadRequestException,
   UnauthorizedException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as crypto from 'crypto';
 import { Parent } from './parent.entity';
+import { Admin } from '../admin/admin.entity';
 import { CreateParentDto } from './dto/create-parent.dto';
 import { UpdateParentDto } from './dto/update-parent.dto';
 
@@ -16,6 +18,8 @@ export class ParentService {
   constructor(
     @InjectRepository(Parent)
     private readonly repo: Repository<Parent>,
+    @InjectRepository(Admin)
+    private readonly adminRepo: Repository<Admin>,
   ) {}
 
   async findById(id: string): Promise<Parent> {
@@ -41,6 +45,11 @@ export class ParentService {
   }
 
   async create(userId: string, dto: CreateParentDto): Promise<Parent> {
+    const existingAdmin = await this.adminRepo.findOne({ where: { userId } });
+    if (existingAdmin) {
+      throw new ConflictException('User cannot be registered as a parent');
+    }
+
     const parent = this.repo.create({
       userId,
       pin_hash: dto.pin_hash,

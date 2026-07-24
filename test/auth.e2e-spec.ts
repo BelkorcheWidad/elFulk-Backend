@@ -11,7 +11,7 @@ function mockSessionMiddleware(
   _res: Response,
   next: NextFunction,
 ) {
-  (req as Record<string, unknown>).session = {
+  (req as unknown as Record<string, unknown>).session = {
     user: {
       id: 'user-uuid',
       name: 'Test User',
