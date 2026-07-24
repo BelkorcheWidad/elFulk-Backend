@@ -45,6 +45,11 @@ export class ParentService {
   }
 
   async create(userId: string, dto: CreateParentDto): Promise<Parent> {
+    const existingParent = await this.repo.findOne({ where: { userId } });
+    if (existingParent) {
+      throw new ConflictException('User cannot be registered as a parent');
+    }
+
     const existingAdmin = await this.adminRepo.findOne({ where: { userId } });
     if (existingAdmin) {
       throw new ConflictException('User cannot be registered as a parent');
