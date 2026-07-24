@@ -32,7 +32,7 @@ export class Parent {
   user: User;
 
   @ApiPropertyOptional()
-  @Column({ nullable: true, select: false })
+  @Column({ type: 'varchar', nullable: true, select: false })
   pin_hash: string | null;
 
   @ApiProperty({ default: false })
@@ -40,7 +40,7 @@ export class Parent {
   pin_activated: boolean;
 
   @ApiPropertyOptional()
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   phone_number: string | null;
 
   @ApiProperty({ default: false })
