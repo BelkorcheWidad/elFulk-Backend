@@ -32,7 +32,7 @@ import { auth } from './auth';
       auth,
       disableGlobalAuthGuard: false,
       bodyParser: {
-        json: { limit: '2mb', enabled: true },
+        json: { limit: '2mb' },
         urlencoded: { limit: '2mb', extended: true },
       },
     }),
