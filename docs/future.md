@@ -50,56 +50,7 @@ CI, etc.):
 4. **E2E tests** — requires a PostgreSQL service container;
    run with `pnpm test:e2e`
 
-Example GitHub Actions workflow skeleton:
-
-```yaml
-jobs:
-  ci:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: test_db
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_pass
-        ports:
-          - 5432:5432
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm tsc --noEmit
-      - run: pnpm test
-      - run: pnpm test:e2e
-```
-
 ## CodeRabbit Integration
 
 [CodeRabbit](https://coderabbit.ai) provides automated code review on
 pull requests. To enable:
-
-1. Install the CodeRabbit GitHub App on the repository
-2. (Optional) Create `.coderabbit.yaml` at the project root for config:
-
-```yaml
-# .coderabbit.yaml
-language: en-US
-reviews:
-  profile: chill
-  review_status: summary
-  path_filters:
-    - '!pnpm-lock.yaml'
-    - '!typeorm/entities/**'
-    - '!typeorm/migrations/**'
-chat:
-  auto_reply: true
-```
-
-The `profile: chill` setting reduces noise; `path_filters` skips
-auto-generated files (lockfile, auth entities/migrations).
