@@ -20,32 +20,27 @@ public are annotated with `@AllowAnonymous()`.
 ```mermaid
 sequenceDiagram
     participant Client
-    participant AuthController
     participant betterAuth
-    participant ParentService
     participant DB
 
-    Client->>AuthController: POST /auth/login (email, password)
-    AuthController->>betterAuth: api.signInEmail(email, password)
+    Client->>betterAuth: POST /api/auth/sign-in/email (email, password)
     betterAuth->>DB: create session
     DB-->>betterAuth: session token
-    betterAuth-->>AuthController: { token, user }
-    AuthController-->>Client: { access_token }
+    betterAuth-->>Client: { token, user }
     Note over Client: Browser: cookie auto-set<br>Mobile: Bearer from header
 
-    Client->>AuthController: GET /auth/me (Bearer / cookie)
-    AuthController->>betterAuth: validate session
-    betterAuth-->>AuthController: session.user
-    AuthController-->>Client: { id, email, name, first_name, last_name, ... }
+    Client->>betterAuth: GET /api/auth/get-session (Bearer / cookie)
+    betterAuth-->>Client: session
 ```
 
-Response: `200 { "access_token": "<session-token>" }`. The token is a Better Auth
-session token, not a raw JWT (JWT cookie cache is only for cookie serialization).
+Login is handled by Better Auth's native endpoint (`POST /api/auth/sign-in/email`),
+not a custom NestJS controller. The response includes both a session `token` and
+the `user` object.
 
-| Client           | Token delivery                                                                                       |
-| ---------------- | ---------------------------------------------------------------------------------------------------- |
-| **Web browser**  | Better Auth sets an `auth-session` cookie automatically (JWT-cookie-cache).                          |
-| **Mobile / SPA** | Extract from the `set-auth-token` response header on login. Send as `Authorization: Bearer <token>`. |
+| Client           | Token delivery                                                                                |
+| ---------------- | --------------------------------------------------------------------------------------------- |
+| **Web browser**  | Better Auth sets an `auth-session` cookie automatically (JWT-cookie-cache).                   |
+| **Mobile / SPA** | Extract the `token` from the response body on login. Send as `Authorization: Bearer <token>`. |
 
 ### Registration
 
@@ -118,8 +113,10 @@ admins are created with role `MODERATOR` and status `PENDING`.
 ### Request Protection
 
 The global guard from `@thallesp/nestjs-better-auth` rejects every unauthenticated
-request unless the route carries `@AllowAnonymous()`. Currently only
-`POST /auth/login` is public. All other routes require a valid session.
+request unless the route carries `@AllowAnonymous()`. No custom NestJS auth
+endpoints are public — all require a valid session. Better Auth's native
+endpoints (`/api/auth/sign-in/email`, `/api/auth/sign-up/email`) are
+public by default via Better Auth's own routing.
 
 ### Session Lookup
 

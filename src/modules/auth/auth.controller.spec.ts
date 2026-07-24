@@ -1,12 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
-import { AuthService } from '@thallesp/nestjs-better-auth';
 import { ParentService } from '../parent/parent.service';
-import { LoginDto } from './dto/login.dto';
 
 describe('AuthController', () => {
   let controller: AuthController;
-  let betterAuthService: { api: { signInEmail: jest.Mock } };
   let parentService: Record<string, jest.Mock>;
 
   const mockSession = {
@@ -39,12 +36,6 @@ describe('AuthController', () => {
   };
 
   beforeEach(async () => {
-    betterAuthService = {
-      api: {
-        signInEmail: jest.fn(),
-      },
-    };
-
     parentService = {
       findByUserId: jest.fn(),
       activatePin: jest.fn(),
@@ -52,44 +43,10 @@ describe('AuthController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [
-        { provide: AuthService, useValue: betterAuthService },
-        { provide: ParentService, useValue: parentService },
-      ],
+      providers: [{ provide: ParentService, useValue: parentService }],
     }).compile();
 
     controller = module.get(AuthController);
-  });
-
-  describe('login', () => {
-    it('should call signInEmail and return access_token', async () => {
-      const dto: LoginDto = { email: 'test@example.com', password: 'pass123' };
-      betterAuthService.api.signInEmail.mockResolvedValue({
-        token: 'jwt-token',
-        user: { id: 'uid' },
-      });
-
-      const result = await controller.login(dto);
-
-      expect(result).toEqual({ access_token: 'jwt-token' });
-      expect(betterAuthService.api.signInEmail).toHaveBeenCalledWith({
-        body: {
-          email: 'test@example.com',
-          password: 'pass123',
-        },
-      });
-    });
-
-    it('should throw UnauthorizedException on failed signIn', async () => {
-      const dto: LoginDto = { email: 'test@example.com', password: 'wrong' };
-      betterAuthService.api.signInEmail.mockRejectedValue(
-        new Error('Invalid credentials'),
-      );
-
-      await expect(controller.login(dto)).rejects.toThrow(
-        'Invalid credentials',
-      );
-    });
   });
 
   describe('getProfile', () => {

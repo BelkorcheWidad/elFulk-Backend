@@ -1,17 +1,36 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { Module } from '@nestjs/common';
-import { AuthService } from '@thallesp/nestjs-better-auth';
+import { INestApplication, ValidationPipe, Module } from '@nestjs/common';
 import request from 'supertest';
 import type { App } from 'supertest/types';
+import type { Request, Response, NextFunction } from 'express';
 import { AuthController } from '../src/modules/auth/auth.controller';
 import { ParentService } from '../src/modules/parent/parent.service';
 
-const mockAuthService = {
-  api: {
-    signInEmail: jest.fn(),
-  },
-};
+function mockSessionMiddleware(
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+) {
+  (req as Record<string, unknown>).session = {
+    user: {
+      id: 'user-uuid',
+      name: 'Test User',
+      email: 'test@example.com',
+      emailVerified: true,
+      image: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      username: 'testuser',
+      first_name: 'Test',
+      last_name: 'User',
+      phone_number: null,
+      lock_alerts: false,
+      limit_warning: false,
+      is_active: true,
+    },
+  };
+  next();
+}
 
 const mockParentService = {
   findByUserId: jest.fn(),
@@ -20,10 +39,7 @@ const mockParentService = {
 
 @Module({
   controllers: [AuthController],
-  providers: [
-    { provide: AuthService, useValue: mockAuthService },
-    { provide: ParentService, useValue: mockParentService },
-  ],
+  providers: [{ provide: ParentService, useValue: mockParentService }],
 })
 class TestAuthModule {}
 
@@ -36,6 +52,7 @@ describe('Auth (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.use(mockSessionMiddleware);
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -54,66 +71,36 @@ describe('Auth (e2e)', () => {
     await app.close();
   });
 
-  describe('POST /api/v1/auth/login', () => {
-    it('should return 200 and an access token for valid credentials', async () => {
-      mockAuthService.api.signInEmail.mockResolvedValue({
-        token: 'sess-token',
-        user: { id: 'uid' },
-      });
-
+  describe('GET /api/v1/auth/me', () => {
+    it('should return the session user', async () => {
       const response = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send({ email: 'parent@example.com', password: 'pass123' })
+        .get('/api/v1/auth/me')
         .expect(200);
 
-      expect(response.body).toEqual({ access_token: 'sess-token' });
-      expect(mockAuthService.api.signInEmail).toHaveBeenCalledWith({
-        body: { email: 'parent@example.com', password: 'pass123' },
+      expect(response.body).toMatchObject({
+        id: 'user-uuid',
+        email: 'test@example.com',
       });
     });
+  });
 
-    it('should return 400 when email is missing', async () => {
+  describe('POST /api/v1/auth/activate-pin', () => {
+    it('should return 400 when pin is missing', async () => {
       const response = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send({ password: 'pass123' })
+        .post('/api/v1/auth/activate-pin')
+        .send({})
         .expect(400);
 
       expect(response.body).toHaveProperty('message');
     });
 
-    it('should return 400 when password is missing', async () => {
+    it('should return 400 for non-numeric pin', async () => {
       const response = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send({ email: 'parent@example.com' })
+        .post('/api/v1/auth/activate-pin')
+        .send({ pin: 'abcd' })
         .expect(400);
 
       expect(response.body).toHaveProperty('message');
-    });
-
-    it('should return 400 for extra fields', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send({
-          email: 'parent@example.com',
-          password: 'pass123',
-          extra: 'field',
-        })
-        .expect(400);
-
-      expect(response.body).toHaveProperty('message');
-    });
-
-    it('should return 401 on signIn failure', async () => {
-      mockAuthService.api.signInEmail.mockRejectedValue(
-        new Error('Invalid credentials'),
-      );
-
-      const response = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send({ email: 'parent@example.com', password: 'wrong' })
-        .expect(401);
-
-      expect(response.body).toHaveProperty('message', 'Invalid credentials');
     });
   });
 });

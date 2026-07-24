@@ -5,47 +5,18 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import {
-  AllowAnonymous,
-  Session,
-  AuthService,
-} from '@thallesp/nestjs-better-auth';
+import { Session } from '@thallesp/nestjs-better-auth';
 import type { UserSession } from '@thallesp/nestjs-better-auth';
 import { auth } from '../../auth';
-import { LoginDto } from './dto/login.dto';
 import { ActivatePinDto } from '../parent/dto/activate-pin.dto';
 import { ParentService } from '../parent/parent.service';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly betterAuthService: AuthService<typeof auth>,
-    private readonly parentService: ParentService,
-  ) {}
-
-  @Post('login')
-  @AllowAnonymous()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Login with email and password' })
-  @ApiResponse({ status: 200, description: 'Returns session token' })
-  @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Body() dto: LoginDto) {
-    try {
-      const { token } = await this.betterAuthService.api.signInEmail({
-        body: {
-          email: dto.email,
-          password: dto.password,
-        },
-      });
-      return { access_token: token };
-    } catch {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-  }
+  constructor(private readonly parentService: ParentService) {}
 
   @Get('me')
   @ApiOperation({ summary: 'Get authenticated user' })
