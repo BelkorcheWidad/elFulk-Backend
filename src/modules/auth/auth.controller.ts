@@ -48,11 +48,11 @@ export class AuthController {
   }
 
   @Get('me')
-  @ApiOperation({ summary: 'Get authenticated user profile' })
-  @ApiResponse({ status: 200, description: 'User profile' })
+  @ApiOperation({ summary: 'Get authenticated user' })
+  @ApiResponse({ status: 200, description: 'Current user from session' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getProfile(@Session() session: UserSession<typeof auth>) {
-    return this.parentService.findByUserId(session.user.id);
+  getProfile(@Session() session: UserSession<typeof auth>) {
+    return session.user;
   }
 
   @Post('activate-pin')
