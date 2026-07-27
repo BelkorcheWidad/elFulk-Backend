@@ -6,7 +6,10 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ActivityLogModule } from './modules/activity-log/activity-log.module';
+import { AccessPolicyModule } from './modules/access-policy/access-policy.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { ChildModule } from './modules/child/child.module';
+import { ParentModule } from './modules/parent/parent.module';
 
 @Module({
   imports: [
@@ -27,7 +30,10 @@ import { AdminModule } from './modules/admin/admin.module';
     UsersModule,
     AuthModule,
     ActivityLogModule,
+    AccessPolicyModule,
     AdminModule,
+    ChildModule,
+    ParentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

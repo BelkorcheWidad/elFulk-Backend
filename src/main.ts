@@ -4,8 +4,6 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { AdminService } from './modules/admin/admin.service';
 
-
-
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
@@ -15,6 +13,9 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+
+  app.setGlobalPrefix('api/v1');
+
   const config = new DocumentBuilder()
     .setTitle('ElFulk API')
     .setDescription('API documentation')
@@ -22,13 +23,13 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
 
-
-
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+
+  SwaggerModule.setup('api/doc', app, document);
 
   await app.get(AdminService).ensureSuperAdminExists();
 
   await app.listen(3000);
 }
+
 void bootstrap();
